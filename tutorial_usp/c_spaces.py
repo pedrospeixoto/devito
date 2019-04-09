@@ -23,15 +23,16 @@ grid = Grid((3,3,3))
 x, y, z = grid.dimensions
 
 from devito.types import Array
-t0i = Array(name='t0i', shape=(3,5,7), dimensions=(x, y, z), scope='heap').indexify()
-t1i = Array(name='t1i', shape=(3,5,7), dimensions=(x, y, z), scope='heap').indexify()
+t0i = Array(name='t0i', shape=(3,5,7), dimensions=(x, y, z), scope='heap')
+t1i = Array(name='t1i', shape=(3,5,7), dimensions=(x, y, z), scope='heap')
+
 
 
 exprs = ['Eq(t0i[x,y,z], t1i[x,y,z])',
          'Eq(t1i[x,y,z], t0i[x,y,z])']
 
 from devito import Eq
-eq1, eq2 =  EVAL(exprs, t0i.base, t1i.base)
+eq1, eq2 =  EVAL(exprs, t0i, t1i)
 
 from devito.ir.equations import LoweredEq
 expr1 = LoweredEq(eq1)
