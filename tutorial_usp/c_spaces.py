@@ -3,12 +3,7 @@ from devito.tools import as_tuple
 def EVAL(exprs, *args):
     scope = {}
     for i in args:
-        try:
             scope[i.name] = i
-            for j in i.base.function.indices:
-                scope[j.name] = j
-        except AttributeError:
-            scope[i.label.name] = i
             for j in i.function.indices:
                 scope[j.name] = j
     processed = []
