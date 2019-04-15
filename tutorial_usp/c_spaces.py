@@ -1,3 +1,17 @@
+# extracted from `IntervalGroup.generate`, in `devito/ir/support/space.py`
+
+from devito import dimensions
+from devito.ir.support import IntervalGroup, Interval
+
+x, y, z = dimensions('x y z')
+ig0 = IntervalGroup([Interval(x, 1, -1)])
+ig1 = IntervalGroup([Interval(x, 2, -2), Interval(y, 3, -3)])
+ig2 = IntervalGroup([Interval(y, 2, -2), Interval(z, 1, -1)])
+
+igg = IntervalGroup.generate('intersection', ig0, ig1, ig2)
+
+
+
 # Took from `devito/tests/conftest.py`
 # from devito.tools import as_tuple
 # def EVAL(exprs, *args):
@@ -27,9 +41,22 @@ from devito import Eq
 eq1 = Eq(t0i[x,y,z], t1i[x,y,z])
 eq2 = Eq(t1i[x,y,z], t0i[x,y,z])
 
+
+
+eqs = [Eq(t0i[x,y,z], t1i[x,y,z]),
+       Eq(t0i[x,y,z], t0i[x,y,z]),
+       Eq(t0i[x,y,z], t0i[x,y,z]),
+       Eq(t0i[x,y,z], t0i[x,y,z-1]),
+       Eq(t0i[x,y,z], t0i[x-1,y,z-1]),
+       Eq(t0i[x,y,z], t0i[x-1,y,z+1]),
+       Eq(t0i[x,y,z], t0i[x+1,y+2,z]),
+       Eq(t0i[x,y,z], t0i[x,y+2,z-3])]
+
 from devito.ir.equations import LoweredEq
-expr1 = LoweredEq(eq1)
-expr2 = LoweredEq(eq2)
+exprs = [LoweredEq(i) for i in eqs]
+
+for i in exprs:
+    print(i.ispace)
 
 # print(eq1)
 # print(expr1)

@@ -19,7 +19,11 @@ def EVAL(exprs, *args):
 #
 
 from devito import Grid
-grid = Grid((3,3,3))
+grid = Grid((3,3))
+tu = TimeFunction(name='tu', grid=grid)
+tui = tu.indexify()
+
+
 x, y, z = grid.dimensions
 
 from devito import TimeFunction
