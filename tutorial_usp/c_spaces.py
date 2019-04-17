@@ -58,6 +58,16 @@ exprs = [LoweredEq(i) for i in eqs]
 for i in exprs:
     print(i.ispace)
 
+IterationSpace[x[0, 0]*, y[0, 0]*, z[0, 0]*]
+IterationSpace[x[0, 0]*, y[0, 0]*, z[0, 0]*]
+IterationSpace[x[0, 0]*, y[0, 0]*, z[0, 0]*]
+IterationSpace[x[0, 0]*, y[0, 0]*, z[0, 0]*]
+IterationSpace[x[0, 0]*, y[0, 0]*, z[0, 0]*]
+IterationSpace[x[0, 0]*, y[0, 0]*, z[0, 0]*]
+IterationSpace[x[0, 0]*, y[0, 0]*, z[0, 0]*]
+IterationSpace[x[0, 0]*, y[0, 0]*, z[0, 0]*]
+
+
 # print(eq1)
 # print(expr1)
 # eq1 == expr1
