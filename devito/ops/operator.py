@@ -28,7 +28,7 @@ class OperatorOPS(Operator):
 
         for expression in expressions:
             ops_expr = make_ops_ast(expression.expr, nfops)
-            print(expression)
+            warning(expression)
             print(ops_expr)
 
         return iet
