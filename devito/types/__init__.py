@@ -10,3 +10,5 @@ from devito.types.constant import *  # noqa
 from devito.types.grid import *  # noqa
 from devito.types.dense import * # noqa
 from devito.types.sparse import *  # noqa
+from devito.types.tensor import *  # noqa
+from devito.types.vector import *  # noqa
