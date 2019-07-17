@@ -1195,6 +1195,7 @@ class TimeFunction(Function):
     """
 
     is_TimeFunction = True
+    is_TimeDependent = True
 
     _time_position = 0
     """Position of time index among the function indices."""

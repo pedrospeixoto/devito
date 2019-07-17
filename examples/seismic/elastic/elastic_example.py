@@ -41,9 +41,9 @@ def run(shape=(50, 50), spacing=(20.0, 20.0), tn=1000.0,
                            space_order=space_order, constant=constant, **kwargs)
     info("Applying Forward")
     # Define receiver geometry (spread across x, just below surface)
-    rec1, rec2, vx, vz, txx, tzz, txz, summary = solver.forward(autotune=autotune)
-
-    return rec1, rec2, vx, vz, txx, tzz, txz, summary
+    rec1, rec2, v, tau, summary = solver.forward(autotune=autotune)
+    from IPython import embed; embed()
+    return rec1, rec2, v, tau, summary
 
 
 def test_elastic():

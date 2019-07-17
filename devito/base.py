@@ -8,7 +8,7 @@ import devito.types.dense as dense
 import devito.types.grid as grid
 import devito.types.sparse as sparse
 import devito.types.constant as constant
-import devito.types.vector as vector
+import devito.types.tensor as tensor
 import devito.operator as operator
 
 
@@ -32,10 +32,19 @@ class TimeFunction(with_metaclass(_BackendSelector, dense.TimeFunction)):
     pass
 
 
-class VectorFunction(with_metaclass(_BackendSelector, vector.VectorFunction)):
+class TensorFunction(with_metaclass(_BackendSelector, tensor.TensorFunction)):
     pass
 
-class VectorTimeFunction(with_metaclass(_BackendSelector, vector.VectorTimeFunction)):
+
+class TensorTimeFunction(with_metaclass(_BackendSelector, tensor.TensorTimeFunction)):
+    pass
+
+
+class VectorFunction(with_metaclass(_BackendSelector, tensor.VectorFunction)):
+    pass
+
+
+class VectorTimeFunction(with_metaclass(_BackendSelector, tensor.VectorTimeFunction)):
     pass
 
 
