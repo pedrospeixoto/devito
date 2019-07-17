@@ -134,7 +134,6 @@ def xreplace_constrained(exprs, make, rule=None, costmodel=lambda e: True, repea
                     replaced = [replace(e) for e in matching if costmodel(e)]
                     unreplaced = [e for e in matching if not costmodel(e)]
                     rebuilt = expr.func(*(other + replaced + unreplaced), evaluate=False)
-                    from IPython import embed; embed()
                     return rebuilt, False
             return expr.func(*other, evaluate=False), False
 
