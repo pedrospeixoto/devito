@@ -482,23 +482,20 @@ def test_aliases_different_nests():
     assert np.all(u.data == exp)
 
 
-def test_nested_aliases():
-    """
-    Check detection and scheduling of nested aliases (i.e., from a first set of
-    aliases, another set of aliases is eventually derived).
-    """
+def test_time_invariant_aliases():
     grid = Grid((10, 10))
 
-    a = Function(name="a", grid=grid, space_order=8)
-    b = Function(name="b", grid=grid, space_order=8)
-    c = Function(name="c", grid=grid, space_order=8)
-    d = Function(name="d", grid=grid, space_order=8)
+    a = Function(name="a", grid=grid, space_order=4)
+    b = Function(name="b", grid=grid, space_order=4)
+    c = Function(name="c", grid=grid, space_order=4)
+    d = Function(name="d", grid=grid, space_order=4)
 
-    e = TimeFunction(name="e", grid=grid, space_order=8)
+    e = TimeFunction(name="e", grid=grid, space_order=4)
 
     deriv = (sqrt((a - 2*b)/c) * e.dx).dy + (sqrt((d - 2*c)/a) * e.dy).dx
 
     op = Operator(Eq(e.forward, deriv + e))
+    from IPython import embed; embed()
 
     op.apply(time=0)
 
