@@ -153,8 +153,8 @@ class TensorFunction(AbstractCachedTensor, Differentiable):
         return self.applyfunc(lambda x: x.evaluate)
 
     def __str__(self):
-        name = "SymmetricTensor" if self.is_symmetric else "Tensor"
-        if self.is_diagonal:
+        name = "SymmetricTensor" if self._is_symmetric else "Tensor"
+        if self._is_diagonal:
             name = "DiagonalTensor"
         st = ''.join([' %-2s,' % c for c in self.values()])
         return "%s(%s)"%(name, st)
