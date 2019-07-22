@@ -4,7 +4,6 @@ import numpy as np
 
 from examples.seismic.utils import scipy_smooth
 from devito import Grid, SubDomain, Function, Constant, warning, mmin, mmax
-from devito.tools import as_tuple
 
 __all__ = ['Model', 'ModelElastic', 'demo_model']
 
@@ -101,15 +100,16 @@ def demo_model(preset, **kwargs):
         origin = kwargs.pop('origin', tuple([0. for _ in shape]))
         dtype = kwargs.pop('dtype', np.float32)
         nbpml = kwargs.pop('nbpml', 10)
-        ratio = kwargs.pop('ratio', 3)
+        nlayers = kwargs.pop('nlayers', 3)
         vp_top = kwargs.pop('vp_top', 1.5)
-        vp_bottom = kwargs.pop('vp_bottom', 2.5)
+        vp_bottom = kwargs.pop('vp_bottom', 5.5)
 
         # Define a velocity profile in km/s
         v = np.empty(shape, dtype=dtype)
         v[:] = vp_top  # Top velocity (background)
-        for i in range(1, ratio):
-            v[..., i* int(shape[-1] / ratio):] = i/1.5*vp_bottom  # Bottom velocity
+        vp_i = np.linspace(vp_top, vp_bottom, nlayers)
+        for i in range(1, nlayers):
+            v[..., i*int(shape[-1] / nlayers):] = vp_i[i]  # Bottom velocity
 
         return Model(space_order=space_order, vp=v, origin=origin, shape=shape,
                      dtype=dtype, spacing=spacing, nbpml=nbpml, **kwargs)
@@ -125,18 +125,20 @@ def demo_model(preset, **kwargs):
         origin = kwargs.pop('origin', tuple([0. for _ in shape]))
         dtype = kwargs.pop('dtype', np.float32)
         nbpml = kwargs.pop('nbpml', 40)
-        ratio = kwargs.pop('ratio', 2)
+        nlayers = kwargs.pop('nlayers', 2)
         vp_top = kwargs.pop('vp_top', 1.5)
-        vp_bottom = kwargs.pop('vp_bottom', 2.5)
+        vp_bottom = kwargs.pop('vp_bottom', 5.5)
 
         # Define a velocity profile in km/s
         v = np.empty(shape, dtype=dtype)
         v[:] = vp_top  # Top velocity (background)
-        for i in range(1, ratio):
-            v[..., i* int(shape[-1] / ratio):] = i/1.5*vp_bottom  # Bottom velocity
+        vp_i = np.linspace(vp_top, vp_bottom, nlayers)
+        for i in range(1, nlayers):
+            v[..., i*int(shape[-1] / nlayers):] = vp_i[i]  # Bottom velocity
 
         vs = 0.5 * v[:]
         rho = v[:]/vp_top
+        # vs[v<1.51] = 0.0
 
         return ModelElastic(space_order=space_order, vp=v, vs=vs, rho=rho,
                             origin=origin, shape=shape,
@@ -152,16 +154,16 @@ def demo_model(preset, **kwargs):
         origin = kwargs.pop('origin', tuple([0. for _ in shape]))
         dtype = kwargs.pop('dtype', np.float32)
         nbpml = kwargs.pop('nbpml', 10)
-        ratio = kwargs.pop('ratio', 2)
+        nlayers = kwargs.pop('nlayers', 2)
         vp_top = kwargs.pop('vp_top', 1.5)
-        vp_bottom = kwargs.pop('vp_bottom', 2.5)
+        vp_bottom = kwargs.pop('vp_bottom', 5.5)
 
         # Define a velocity profile in km/s
         v = np.empty(shape, dtype=dtype)
         v[:] = vp_top  # Top velocity (background)
-        v[:] = vp_top  # Top velocity (background)
-        for i in range(1, ratio):
-            v[..., i* int(shape[-1] / ratio):] = i/1.5*vp_bottom  # Bottom velocity
+        vp_i = np.linspace(vp_top, vp_bottom, nlayers)
+        for i in range(1, nlayers):
+            v[..., i*int(shape[-1] / nlayers):] = vp_i[i]  # Bottom velocity
 
         epsilon = scipy_smooth(.3*(v - 1.5))
         delta = scipy_smooth(.2*(v - 1.5))
@@ -185,14 +187,16 @@ def demo_model(preset, **kwargs):
         origin = kwargs.pop('origin', tuple([0. for _ in shape]))
         dtype = kwargs.pop('dtype', np.float32)
         nbpml = kwargs.pop('nbpml', 10)
-        ratio = kwargs.pop('ratio', 2)
+        nlayers = kwargs.pop('nlayers', 2)
         vp_top = kwargs.pop('vp_top', 1.5)
         vp_bottom = kwargs.pop('vp_bottom', 2.5)
 
         # Define a velocity profile in km/s
         v = np.empty(shape, dtype=dtype)
         v[:] = vp_top  # Top velocity (background)
-        v[..., int(shape[-1] / ratio):] = vp_bottom  # Bottom velocity
+        vp_i = np.linspace(vp_top, vp_bottom, nlayers)
+        for i in range(1, nlayers):
+            v[..., i*int(shape[-1] / nlayers):] = vp_i[i]  # Bottom velocity
 
         epsilon = .3*(v - 1.5)
         delta = .2*(v - 1.5)
@@ -267,7 +271,7 @@ def demo_model(preset, **kwargs):
         v = v[301:-300, :]
         vs = .5 * v[:]
         rho = 0.31 * (1e3*v)**0.25
-        rho[v < 1.51] = 1.0
+        # rho[v < 1.51] = 1.0
 
         return ModelElastic(space_order=space_order, vp=v, vs=vs, rho=rho,
                             origin=origin, shape=v.shape,
@@ -697,25 +701,29 @@ class ModelElastic(GenericModel):
         self.damp = Function(name="damp", grid=self.grid)
         initialize_damp(self.damp, self.nbpml, self.spacing, mask=True)
 
-        # Create lambda Lame paramter
-        if any(isinstance(p, np.ndarray) for p in (vp, vs, rho)):
-            self.lam = Function(name="l", grid=self.grid, space_order=space_order)
-            initialize_function(self.lam, (vp**2/rho - 2 * vs**2/rho), self.nbpml)
-        else:
-            self.lam = Constant(name="l", value=(vp**2*rho - 2 * vs**2))
-        self._physical_parameters = ('l',)
-
+        self._physical_parameters = ()
         # Create mu Lame parameter
-        if isinstance(vs, np.ndarray):
-            self.mu = Function(name="mu", grid=self.grid, space_order=space_order)
+        if any(isinstance(p, np.ndarray) for p in (vs, rho)):
+            self.mu = Function(name="mu", grid=self.grid, space_order=space_order,
+                               parameter=True)
             initialize_function(self.mu, vs**2/rho, self.nbpml)
         else:
-            self.mu = Constant(name="mu", value=vs**2/rho)
+            self.mu = Constant(name="mu", value=vs**2*rho)
         self._physical_parameters += ('mu',)
+
+        # Create lambda Lame paramter
+        if any(isinstance(p, np.ndarray) for p in (vp, vs, rho)):
+            self.lam = Function(name="l", grid=self.grid, space_order=space_order,
+                                parameter=True)
+            initialize_function(self.lam, vp**2*rho - 2 * vs**2*rho, self.nbpml)
+        else:
+            self.lam = Constant(name="l", value=(vp**2*rho - 2 * vs**2*rho))
+        self._physical_parameters += ('l',)
 
         # Create inverse of density
         if isinstance(rho, np.ndarray):
-            self.irho = Function(name="irho", grid=self.grid, space_order=space_order)
+            self.irho = Function(name="irho", grid=self.grid, space_order=space_order,
+                                 parameter=True)
             initialize_function(self.irho, 1/rho, self.nbpml)
         else:
             self.irho = Constant(name="irho", value=1/rho)
@@ -731,9 +739,3 @@ class ModelElastic(GenericModel):
         # The CFL condtion is then given by
         # dt < h / (sqrt(2) * max(vp)))
         return self.dtype(.5*mmin(self.spacing) / (np.sqrt(2)*mmax(self.maxvp)))
-
-    def avg(self, field, dim):
-        if len(as_tuple(dim)) == 1:
-            return .5 * (field + field.subs({dim: dim + dim.spacing}))
-        else:
-            return .25 * (field + sum(field.subs({d: d + d.spacing}) for d in dim))
