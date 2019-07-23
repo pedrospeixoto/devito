@@ -127,7 +127,7 @@ def demo_model(preset, **kwargs):
         nbpml = kwargs.pop('nbpml', 40)
         nlayers = kwargs.pop('nlayers', 2)
         vp_top = kwargs.pop('vp_top', 1.5)
-        vp_bottom = kwargs.pop('vp_bottom', 5.5)
+        vp_bottom = kwargs.pop('vp_bottom', 3.5)
 
         # Define a velocity profile in km/s
         v = np.empty(shape, dtype=dtype)
@@ -137,8 +137,9 @@ def demo_model(preset, **kwargs):
             v[..., i*int(shape[-1] / nlayers):] = vp_i[i]  # Bottom velocity
 
         vs = 0.5 * v[:]
-        rho = v[:]/vp_top
-        # vs[v<1.51] = 0.0
+        rho = 0.31 * (1e3*v)**0.25
+        rho[v < 1.51] = 1.0
+        vs[v < 1.51] = 0.0
 
         return ModelElastic(space_order=space_order, vp=v, vs=vs, rho=rho,
                             origin=origin, shape=shape,
@@ -254,28 +255,24 @@ def demo_model(preset, **kwargs):
                      dtype=np.float32, spacing=spacing, nbpml=nbpml, **kwargs)
 
     elif preset.lower() in ['marmousi-elastic', 'marmousi2d-elastic']:
-        shape = (1601, 401)
         spacing = (7.5, 7.5)
         origin = (0., 0.)
-
         # Read 2D Marmousi model from opesc/data repo
         data_path = kwargs.get('data_path', None)
         if data_path is None:
             raise ValueError("Path to opesci/data not found! Please specify with "
                              "'data_path=<path/to/opesci/data>'")
-        path = os.path.join(data_path, 'Simple2D/vp_marmousi_bi')
-        v = np.fromfile(path, dtype='float32', sep="")
-        v = v.reshape(shape)
-
-        # Cut the model to make it slightly cheaper
-        v = v[301:-300, :]
-        vs = .5 * v[:]
-        rho = 0.31 * (1e3*v)**0.25
-        # rho[v < 1.51] = 1.0
+        v = np.load(os.path.join(data_path, 'Simple2D/VP_elastic.npy'))
+        vs = np.load(os.path.join(data_path, 'Simple2D/VS_elastic.npy'))
+        rho = np.load(os.path.join(data_path, 'Simple2D/DENSITY_elastic.npy'))
+        # Cut the model to make it slightly cheap
+        v = 1e-3 * np.transpose(v[::6, ::6])
+        vs = scipy_smooth(1e-3 * np.transpose(vs[::6, ::6]))
+        rho = scipy_smooth(np.transpose(rho[::6, ::6]))
 
         return ModelElastic(space_order=space_order, vp=v, vs=vs, rho=rho,
                             origin=origin, shape=v.shape,
-                            dtype=np.float32, spacing=spacing, nbpml=80)
+                            dtype=np.float32, spacing=spacing, nbpml=40)
 
     elif preset.lower() in ['marmousi-tti2d', 'marmousi2d-tti']:
 
@@ -556,12 +553,11 @@ class Model(GenericModel):
 
         # Create square slowness of the wave as symbol `m`
         if isinstance(vp, np.ndarray):
-            self.m = Function(name="m", grid=self.grid, space_order=space_order)
+            self._vp = Function(name="vp", grid=self.grid, space_order=space_order)
+            initialize_function(self._vp, vp, self.nbpml)
         else:
-            self.m = Constant(name="m", value=1/vp**2)
-        self._physical_parameters = ('m',)
-        # Set model velocity, which will also set `m`
-        self.vp = vp
+            self._vp = Constant(name="vp", value=vp)
+        self._physical_parameters = ('vp',)
 
         # Create dampening field as symbol `damp`
         self.damp = Function(name="damp", grid=self.grid)
@@ -654,13 +650,16 @@ class Model(GenericModel):
         vp : float or array
             New velocity in km/s.
         """
-        self._vp = vp
 
         # Update the square slowness according to new value
         if isinstance(vp, np.ndarray):
-            initialize_function(self.m, 1 / (self.vp * self.vp), self.nbpml)
+            initialize_function(self._vp, vp, self.nbpml)
         else:
-            self.m.data = 1 / vp**2
+            self._vp.data = vp
+
+    @property
+    def m(self):
+        return 1 / (self.vp * self.vp)
 
 
 class ModelElastic(GenericModel):
@@ -706,7 +705,7 @@ class ModelElastic(GenericModel):
         if any(isinstance(p, np.ndarray) for p in (vs, rho)):
             self.mu = Function(name="mu", grid=self.grid, space_order=space_order,
                                parameter=True)
-            initialize_function(self.mu, vs**2/rho, self.nbpml)
+            initialize_function(self.mu, vs**2*rho, self.nbpml)
         else:
             self.mu = Constant(name="mu", value=vs**2*rho)
         self._physical_parameters += ('mu',)
@@ -715,9 +714,9 @@ class ModelElastic(GenericModel):
         if any(isinstance(p, np.ndarray) for p in (vp, vs, rho)):
             self.lam = Function(name="l", grid=self.grid, space_order=space_order,
                                 parameter=True)
-            initialize_function(self.lam, vp**2*rho - 2 * vs**2*rho, self.nbpml)
+            initialize_function(self.lam, (vp**2 - 2 * vs**2)*rho, self.nbpml)
         else:
-            self.lam = Constant(name="l", value=(vp**2*rho - 2 * vs**2*rho))
+            self.lam = Constant(name="l", value=(vp**2 - 2 * vs**2)*rho)
         self._physical_parameters += ('l',)
 
         # Create inverse of density
@@ -726,7 +725,7 @@ class ModelElastic(GenericModel):
                                  parameter=True)
             initialize_function(self.irho, 1/rho, self.nbpml)
         else:
-            self.irho = Constant(name="irho", value=1/rho)
+            self.rho = Constant(name="irho", value=1/rho)
         self._physical_parameters += ('irho',)
 
     @property
@@ -738,4 +737,7 @@ class ModelElastic(GenericModel):
         #
         # The CFL condtion is then given by
         # dt < h / (sqrt(2) * max(vp)))
-        return self.dtype(.5*mmin(self.spacing) / (np.sqrt(2)*mmax(self.maxvp)))
+        # Remeber that for staggered grid, FD is formulated on an h/2 grid
+        #  so needs .5 * h
+        coeff = np.sqrt(3) if len(self.shape) == 3 else np.sqrt(3)
+        return self.dtype(.48*mmin(self.spacing) / (coeff*self.maxvp))

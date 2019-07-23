@@ -285,6 +285,9 @@ class AbstractSparseFunction(DiscreteFunction, Differentiable):
 
         return values
 
+    def eval_at(self, var):
+        return self
+
     def _arg_apply(self, dataobj, alias=None):
         key = alias if alias is not None else self
         if isinstance(key, AbstractSparseFunction):
@@ -563,15 +566,15 @@ class SparseFunction(AbstractSparseFunction):
                       for c, o, i in zip(self._coordinate_symbols, self.grid.origin,
                                          indices[:self.grid.dim])])
 
-    @cached_property
-    def _coordinate_bases(self):
+    def _coordinate_bases(self, field_offset):
         """Symbol for the base coordinates of the reference grid point."""
         indices = self.grid.dimensions
         return tuple([cast_mapper[self.dtype](c - o - idx * i.spacing)
-                      for c, o, idx, i in zip(self._coordinate_symbols,
-                                              self.grid.origin,
-                                              self._coordinate_indices,
-                                              indices[:self.grid.dim])])
+                      for c, o, idx, i, of in zip(self._coordinate_symbols,
+                                                  self.grid.origin,
+                                                  self._coordinate_indices,
+                                                  indices[:self.grid.dim],
+                                                  field_offset)])
 
     @memoized_meth
     def _index_matrix(self, offset):
@@ -592,7 +595,7 @@ class SparseFunction(AbstractSparseFunction):
 
         return index_matrix, points
 
-    def _interpolation_indices(self, variables, offset=0):
+    def _interpolation_indices(self, variables, offset=0, off_f=0):
         """
         Generate interpolation indices for the DiscreteFunctions in ``variables``.
         """
@@ -617,7 +620,8 @@ class SparseFunction(AbstractSparseFunction):
         temps = [Eq(v, k, implicit_dims=self.dimensions) for k, v in points.items()]
         # Temporaries for the coefficients
         temps.extend([Eq(p, c, implicit_dims=self.dimensions)
-                      for p, c in zip(self._point_symbols, self._coordinate_bases)])
+                      for p, c in zip(self._point_symbols,
+                                      self._coordinate_bases(off_f))])
 
         return idx_subs, temps
 
@@ -653,8 +657,11 @@ class SparseFunction(AbstractSparseFunction):
 
         variables = list(retrieve_function_carriers(expr))
 
+        # Need to get origin of the field in case it is staggered
+        field_offset = variables[0].origin
         # List of indirection indices for all adjacent grid points
-        idx_subs, temps = self._interpolation_indices(variables, offset)
+        idx_subs, temps = self._interpolation_indices(variables, offset,
+                                                      off_f=field_offset)
 
         # Substitute coordinate base symbols into the interpolation coefficients
         args = [expr.xreplace(v_sub) * b.xreplace(v_sub)
@@ -693,8 +700,11 @@ class SparseFunction(AbstractSparseFunction):
 
         variables = list(retrieve_function_carriers(expr)) + [field]
 
+        # Need to get origin of the field in case it is staggered
+        field_offset = field.origin
         # List of indirection indices for all adjacent grid points
-        idx_subs, temps = self._interpolation_indices(variables, offset)
+        idx_subs, temps = self._interpolation_indices(variables, offset,
+                                                      off_f=field_offset)
 
         # Substitute coordinate base symbols into the interpolation coefficients
         eqns = [Inc(field.xreplace(vsub), expr.xreplace(vsub) * b,
