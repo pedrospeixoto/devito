@@ -88,7 +88,8 @@ def first_derivative(expr, dim, fd_order=None, side=centered, matvec=direct,
 
     # Loop through positions
     deriv = 0
-    all_dims = tuple(set((dim,) + tuple([i for i in expr.indices if i.root == dim])))
+    all_dims = tuple(set((expr.index(dim),) +
+                     tuple(expr.index(i) for i in expr.dimensions if i.root == dim)))
     for i in range(len(ind)):
         subs = dict([(d, ind[i].subs({dim: d, diff: matvec.val*diff})) for d in all_dims])
         deriv += expr.subs(subs) * c[i]

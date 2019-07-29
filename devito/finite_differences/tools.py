@@ -173,6 +173,7 @@ def indices_cartesian(dim, diff, order, side):
         diff = -diff
     if side in [left, right]:
         shift = 1
+
     ind = [(dim + (i + shift) * diff) for i in range(-order//2, order//2 + 1)]
     if order < 2:
         ind = [dim, dim + diff]

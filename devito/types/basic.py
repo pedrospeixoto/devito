@@ -1036,7 +1036,7 @@ class Array(AbstractCachedFunction):
 
     def update(self, **kwargs):
         self._shape = kwargs.get('shape', self.shape)
-        self._indices = kwargs.get('dimensions', self.dimensions)
+        self._dimensions = kwargs.get('dimensions', self.dimensions)
         self._dtype = kwargs.get('dtype', self.dtype)
         self._halo = kwargs.get('halo', self._halo)
         self._padding = kwargs.get('padding', self._padding)
@@ -1044,7 +1044,7 @@ class Array(AbstractCachedFunction):
         assert self._scope in ['heap', 'stack']
 
     # Pickling support
-    _pickle_kwargs = AbstractCachedFunction._pickle_kwargs + ['dimensions', 'scope']
+    _pickle_kwargs = AbstractCachedFunction._pickle_kwargs + ['indices', 'scope']
 
 
 # Objects belonging to the Devito API not involving data, such as data structures
@@ -1256,6 +1256,10 @@ class Indexed(sympy.Indexed):
     @property
     def name(self):
         return self.function.name
+
+    @property
+    def origin(self):
+        return self.function.origin
 
 # Utilities
 

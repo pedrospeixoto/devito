@@ -150,7 +150,7 @@ class DiscreteFunction(AbstractCachedFunction, ArgProvider):
         """
         staggered = kwargs.get('staggered', None)
         if staggered == CELL:
-            staggered = self.grid.dimensions
+            staggered = self.dimensions
         return staggered
 
     def __distributor_setup__(self, **kwargs):

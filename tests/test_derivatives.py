@@ -4,7 +4,7 @@ from sympy import simplify, diff, cos, sin
 
 from conftest import skipif
 from devito import (Grid, Function, TimeFunction, Eq, Operator, clear_cache, NODE,
-                    ConditionalDimension, left, right, centered, generic_derivative)
+                    ConditionalDimension, left, right, centered)
 from devito.finite_differences import Derivative, Differentiable
 
 _PRECISION = 9

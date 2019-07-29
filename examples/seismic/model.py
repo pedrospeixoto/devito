@@ -157,7 +157,7 @@ def demo_model(preset, **kwargs):
         nbpml = kwargs.pop('nbpml', 10)
         nlayers = kwargs.pop('nlayers', 2)
         vp_top = kwargs.pop('vp_top', 1.5)
-        vp_bottom = kwargs.pop('vp_bottom', 5.5)
+        vp_bottom = kwargs.pop('vp_bottom', 3.5)
 
         # Define a velocity profile in km/s
         v = np.empty(shape, dtype=dtype)
@@ -558,6 +558,7 @@ class Model(GenericModel):
         else:
             self._vp = Constant(name="vp", value=vp)
         self._physical_parameters = ('vp',)
+        self._max_vp = np.max(vp)
 
         # Create dampening field as symbol `damp`
         self.damp = Function(name="damp", grid=self.grid)
@@ -624,7 +625,7 @@ class Model(GenericModel):
         # The CFL condtion is then given by
         # dt <= coeff * h / (max(velocity))
         coeff = 0.38 if len(self.shape) == 3 else 0.42
-        dt = self.dtype(coeff * mmin(self.spacing) / (self.scale*mmax(self.vp)))
+        dt = self.dtype(coeff * mmin(self.spacing) / (self.scale*self._max_vp))
         return self.dtype("%.3f" % dt)
 
     @property
@@ -653,9 +654,13 @@ class Model(GenericModel):
 
         # Update the square slowness according to new value
         if isinstance(vp, np.ndarray):
-            initialize_function(self._vp, vp, self.nbpml)
+            if vp.shape == self.vp.shape:
+                self.vp.data[:] = vp[:]
+            else:
+                initialize_function(self._vp, vp, self.nbpml)
         else:
             self._vp.data = vp
+        self._max_vp = np.max(vp)
 
     @property
     def m(self):
