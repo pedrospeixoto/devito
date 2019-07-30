@@ -1,11 +1,9 @@
 from collections import ChainMap
 
 import sympy
-from sympy import S
 
 from sympy.functions.elementary.integers import floor
 from sympy.core.evalf import evalf_table
-from sympy.core.decorators import call_highest_priority
 
 from cached_property import cached_property
 
@@ -27,6 +25,13 @@ class Differentiable(sympy.Expr, Evaluable):
     _op_priority = sympy.Expr._op_priority + 1.
 
     _state = ('space_order', 'time_order', 'indices')
+
+    @classmethod
+    def _rebuild(cls, seq):
+        if not seq:
+            return []
+        seq = [to_differentiable(a) for a in seq]
+        return seq
 
     @cached_property
     def _functions(self):
@@ -114,7 +119,6 @@ class Differentiable(sympy.Expr, Evaluable):
     def eval_at(self, var):
         if not var.is_Staggered:
             return self
-        # print([(a, type(a), getattr(a, 'eval_at', lambda x: a)(var)) for a in self.args])
         return self.func(*[getattr(a, 'eval_at', lambda x: a)(var) for a in self.args])
 
     def __hash__(self):
@@ -252,213 +256,13 @@ class Add(sympy.Add, Differentiable):
         # Here we make sure to return our own Mul.
         if obj.is_Mul:
             obj = Mul(*obj.args)
-
-        return obj
-
-    @classmethod
-    def flatten(cls, seq):
-        """
-        Takes the sequence "seq" of nested Adds and returns a flatten list.
-        Returns: (commutative_part, noncommutative_part, order_symbols)
-        Applies associativity, all terms are commutable with respect to
-        addition.
-        NB: the removal of 0 is already handled by AssocOp.__new__
-        See also
-        ========
-        sympy.core.mul.Mul.flatten
-        """
-        from sympy.calculus.util import AccumBounds
-        from sympy.matrices.expressions import MatrixExpr
-        from sympy.tensor.tensor import TensExpr
-        rv = None
-        if len(seq) == 2:
-            a, b = seq
-            if b.is_Rational:
-                a, b = b, a
-            if a.is_Rational:
-                if b.is_Mul:
-                    rv = [a, b], [], None
-            if rv:
-                if all(s.is_commutative for s in rv[0]):
-                    return rv
-                return [], rv[0], None
-
-        terms = {}      # term -> coeff
-                        # e.g. x**2 -> 5   for ... + 5*x**2 + ...
-
-        coeff = S.Zero  # coefficient (Number or zoo) to always be in slot 0
-                        # e.g. 3 + ...
-        order_factors = []
-
-        extra = []
-
-        for o in seq:
-
-            # O(x)
-            if o.is_Order:
-                for o1 in order_factors:
-                    if o1.contains(o):
-                        o = None
-                        break
-                if o is None:
-                    continue
-                order_factors = [o] + [
-                    o1 for o1 in order_factors if not o.contains(o1)]
-                continue
-
-            # 3 or NaN
-            elif o.is_Number:
-                if (o is S.NaN or coeff is S.ComplexInfinity and
-                        o.is_finite is False) and not extra:
-                    # we know for sure the result will be nan
-                    return [S.NaN], [], None
-                if coeff.is_Number:
-                    coeff += o
-                    if coeff is S.NaN and not extra:
-                        # we know for sure the result will be nan
-                        return [S.NaN], [], None
-                continue
-
-            elif isinstance(o, AccumBounds):
-                coeff = o.__add__(coeff)
-                continue
-
-            elif isinstance(o, MatrixExpr):
-                # can't add 0 to Matrix so make sure coeff is not 0
-                extra.append(o)
-                continue
-
-            elif isinstance(o, TensExpr):
-                coeff = o.__add__(coeff) if coeff else o
-                continue
-
-            elif o is S.ComplexInfinity:
-                if coeff.is_finite is False and not extra:
-                    # we know for sure the result will be nan
-                    return [S.NaN], [], None
-                coeff = S.ComplexInfinity
-                continue
-
-            # Add([...])
-            elif o.is_Add:
-                # NB: here we assume Add is always commutative
-                seq.extend(o.args)  # TODO zerocopy?
-                continue
-
-            # Mul([...])
-            elif o.is_Mul:
-                c, s = o.as_coeff_Mul()
-
-            # check for unevaluated Pow, e.g. 2**3 or 2**(-1/2)
-            elif o.is_Pow:
-                b, e = o.as_base_exp()
-                if b.is_Number and (e.is_Integer or
-                                   (e.is_Rational and e.is_negative)):
-                    seq.append(b**e)
-                    continue
-                c, s = S.One, o
-
-            else:
-                # everything else
-                c = S.One
-                s = o
-
-            # now we have:
-            # o = c*s, where
-            #
-            # c is a Number
-            # s is an expression with number factor extracted
-            # let's collect terms with the same s, so e.g.
-            # 2*x**2 + 3*x**2  ->  5*x**2
-            if s in terms:
-                terms[s] += c
-                if terms[s] is S.NaN and not extra:
-                    # we know for sure the result will be nan
-                    return [S.NaN], [], None
-            else:
-                terms[s] = c
-
-        # now let's construct new args:
-        # [2*x**2, x**3, 7*x**4, pi, ...]
-        newseq = []
-        noncommutative = False
-        for s, c in terms.items():
-            # 0*s
-            if c is S.Zero:
-                continue
-            # 1*s
-            elif c is S.One:
-                newseq.append(s)
-            # c*s
-            else:
-                if s.is_Mul:
-                    # Mul, already keeps its arguments in perfect order.
-                    # so we can simply put c in slot0 and go the fast way.
-                    cs = s._new_rawargs(*((c,) + s.args))
-                    newseq.append(cs)
-                elif s.is_Add:
-                    # we just re-create the unevaluated Mul
-                    newseq.append(Mul(c, s, evaluate=False))
-                else:
-                    # alternatively we have to call all Mul's machinery (slow)
-                    newseq.append(Mul(c, s))
-
-            noncommutative = noncommutative or not s.is_commutative
-
-        # oo, -oo
-        if coeff is S.Infinity:
-            newseq = [f for f in newseq if not (f.is_extended_nonnegative or f.is_real)]
-
-        elif coeff is S.NegativeInfinity:
-            newseq = [f for f in newseq if not (f.is_extended_nonpositive or f.is_real)]
-
-        if coeff is S.ComplexInfinity:
-            # zoo might be
-            #   infinite_real + finite_im
-            #   finite_real + infinite_im
-            #   infinite_real + infinite_im
-            # addition of a finite real or imaginary number won't be able to
-            # change the zoo nature; adding an infinite qualtity would result
-            # in a NaN condition if it had sign opposite of the infinite
-            # portion of zoo, e.g., infinite_real - infinite_real.
-            newseq = [c for c in newseq if not (c.is_finite and
-                                                c.is_extended_real is not None)]
-
-        # process O(x)
-        if order_factors:
-            newseq2 = []
-            for t in newseq:
-                for o in order_factors:
-                    # x + O(x) -> O(x)
-                    if o.contains(t):
-                        t = None
-                        break
-                # x + O(x**2) -> x + O(x**2)
-                if t is not None:
-                    newseq2.append(t)
-            newseq = newseq2 + order_factors
-            # 1 + O(1) -> O(1)
-            for o in order_factors:
-                if o.contains(coeff):
-                    coeff = S.Zero
-                    break
-
-        # order args canonically
-        _addsort(newseq)
-
-        # current code expects coeff to be first
-        if coeff is not S.Zero:
-            newseq.insert(0, coeff)
-
-        if extra:
-            newseq += extra
-            noncommutative = True
-
-        # we are done
-        if noncommutative:
-            return [], newseq, None
-        else:
-            return newseq, [], None
+        # Sympy turns the input arguments to its own types so we revert the arguments
+        # to our own types after object creation.
+        try:
+            return obj._from_args(tuple(Differentiable._rebuild(list(obj.args))),
+                                  is_commutative=True)
+        except AttributeError:
+            return obj
 
 
 class Mul(sympy.Mul, Differentiable):
@@ -474,8 +278,14 @@ class Mul(sympy.Mul, Differentiable):
         # Here we make sure to return our own Pow.
         if obj.is_Pow:
             obj = Pow(*obj.args)
-
-        return obj
+            return obj
+        # Sympy turns the input arguments to its own types so we revert the arguments
+        # to our own types after object creation.
+        try:
+            return obj._from_args(tuple(Differentiable._rebuild(list(obj.args))),
+                                  is_commutative=True)
+        except AttributeError:
+            return obj
 
 
 class Pow(sympy.Pow, Differentiable):
@@ -500,12 +310,13 @@ evalf_table[Mul] = evalf_table[sympy.Mul]
 evalf_table[Pow] = evalf_table[sympy.Pow]
 
 
-from functools import cmp_to_key
-
-
-_args_sortkey = cmp_to_key(sympy.Basic.compare)
-
-
-def _addsort(args):
-    # in-place sorting of args
-    args.sort(key=_args_sortkey)
+def to_differentiable(expr):
+    if not expr:
+        return expr
+    if expr.is_Add:
+        return Add._from_args(expr.args)
+    if expr.is_Mul:
+        return Mul._from_args(expr.args)
+    if expr.is_Pow:
+        return Pow(*expr.args)
+    return expr

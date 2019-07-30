@@ -41,6 +41,8 @@ class Derivative(sympy.Derivative, Differentiable):
     transpose : Transpose, optional
         Forward (matvec=direct) or transpose (matvec=transpose) mode of the
         finite difference. Defaults to ``direct``.
+    x0 : Dict, optional
+        Dictionary of origins for the FD, ie {x: x, y: y + h_y/2}.
 
     Examples
     --------
@@ -140,6 +142,10 @@ class Derivative(sympy.Derivative, Differentiable):
         obj._x0 = kwargs.get('x0', {d: d for d in obj._dims})
         return obj
 
+    def subs(self, *args, **kwargs):
+        print(args, dict(*args))
+        return self.xreplace(dict(*args), **kwargs)
+
     def _xreplace(self, eval_at):
         """
         This is a helper method used internally by SymPy. We exploit it to postpone
@@ -200,6 +206,11 @@ class Derivative(sympy.Derivative, Differentiable):
                           x0=self.x0)
 
     def eval_at(self, var):
+        """
+        Evaluates the derivative at the location of var. This is necessary for staggered
+        setup where one could have Eq(u(x + h_x/2, v(x).dx)) in which case v(x).dx
+        has to be computed at x=x + h_x/2.
+        """
         x0 = {d1: d2 for d1, d2 in zip(var.dimensions, var.index_ref)}
         return Derivative(self.expr, *self.dims, deriv_order=self.deriv_order,
                           fd_order=self.fd_order, side=self.side,
@@ -208,6 +219,12 @@ class Derivative(sympy.Derivative, Differentiable):
     @property
     def evaluate(self):
         expr = getattr(self.expr, 'evaluate', self.expr)
+        # If the expression is an addition, for example if expr was a derivative that
+        # was evaluated, split it and rebuild it as each term may have a different
+        # staggereing and needs a separate FD computation
+        if expr.is_Add:
+            return expr.func(*[e.evaluate for e in expr.args])
+
         if self.side in [left, right] and self.deriv_order == 1:
             res = first_derivative(expr, self.dims[0], self.fd_order,
                                    side=self.side, matvec=self.transpose,

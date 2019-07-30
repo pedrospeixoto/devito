@@ -8,6 +8,7 @@ from devito.tools import Tag, as_tuple
 from devito.finite_differences import Differentiable
 from devito.types import NODE
 
+
 class Transpose(Tag):
     """
     Utility class to change the sign of a derivative. This is only needed
@@ -158,7 +159,7 @@ def symbolic_weights(function, deriv_order, indices, dim):
 
 def generate_indices(func, dim, diff, order, side=None, x0={}):
     # If staggered finited difference
-    if func.is_Staggered:
+    if func.is_Staggered and not dim.is_Time:
         x0, ind = indices_staggered(func, dim, diff, order, side=side, x0=x0)
     else:
         x0 = x0.get(dim, dim)
@@ -183,9 +184,13 @@ def indices_cartesian(dim, diff, order, side):
 def indices_staggered(func, dim, diff, order, side=None, x0={}):
     start = x0.get(dim, func.ind_map[dim])
     if start != func.ind_map[dim]:
-        ind = [start - diff/2 - i * diff for i in range(0, order//2+1)]
-        ind += [start + diff/2 + i * diff for i in range(0, order//2+1)] 
+        ind = [start - diff/2 - i * diff for i in range(0, order//2)]
+        ind += [start + diff/2 + i * diff for i in range(0, order//2)]
+        if order < 2:
+            ind = [start - diff/2, start + diff/2]
     else:
         ind = [start + i * diff for i in range(-order//2, order//2+1)]
+        if order < 2:
+            ind = [start, start + diff]
 
     return start, ind
