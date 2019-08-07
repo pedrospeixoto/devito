@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from sympy import simplify, diff, cos, sin
+from sympy import simplify, diff, cos, sinc
 
 from conftest import skipif
 from devito import (Grid, Function, TimeFunction, Eq, Operator, clear_cache, NODE,
@@ -373,7 +373,7 @@ class TestFD(object):
         g_deriv = Function(name='g_deriv', grid=grid, space_order=so)
 
         # Fill f and g with smooth cos/sin
-        Operator([Eq(g, cos(2*np.pi*x/5)), Eq(f, sin(2*np.pi*x/8))]).apply()
+        Operator([Eq(g, x*cos(2*np.pi*x/5)), Eq(f, sinc(2*np.pi*x/8))]).apply()
         # Check symbolic expression are expected ones for the adjoint .T
         deriv = getattr(f, derivative)
         expected = adjoint_coeff * getattr(f, adjoint_name).evaluate
