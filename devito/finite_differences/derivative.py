@@ -2,7 +2,6 @@ from collections import OrderedDict
 from collections.abc import Iterable
 
 import sympy
-from cached_property import cached_property
 
 from devito.finite_differences.finite_difference import (generic_derivative,
                                                          first_derivative,
@@ -10,7 +9,6 @@ from devito.finite_differences.finite_difference import (generic_derivative,
 from devito.finite_differences.differentiable import Differentiable
 from devito.finite_differences.tools import centered, direct, transpose, left, right
 from devito.tools import as_tuple, filter_ordered
-from devito.types import NODE
 
 __all__ = ['Derivative']
 
@@ -215,7 +213,7 @@ class Derivative(sympy.Derivative, Differentiable):
         return Derivative(self.expr, *self.dims, deriv_order=self.deriv_order,
                           fd_order=self.fd_order, side=self.side,
                           transpose=self.transpose, eval_at=self._eval_at, x0=x0)
-        
+
     @property
     def evaluate(self):
         expr = getattr(self.expr, 'evaluate', self.expr)

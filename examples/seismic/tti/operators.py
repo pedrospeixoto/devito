@@ -1,6 +1,6 @@
 from sympy import cos, sin, sqrt
 
-from devito import Eq, Operator, TimeFunction, NODE, VectorTimeFunction
+from devito import Eq, Operator, TimeFunction, NODE
 from examples.seismic import PointSource, Receiver
 from devito.finite_differences import centered, first_derivative, transpose
 
