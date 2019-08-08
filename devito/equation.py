@@ -223,8 +223,8 @@ def solve(eq, target, **kwargs):
     kwargs['simplify'] = False  # Do not attempt premature optimisation
     kwargs['manual'] = True  # Force sympy to solve one line at a time for VectorFunction
     if isinstance(eq, Eq):
-        eqlhs = eq.lhs - eq.rhs if eq.rhs != 0 else eq.lhs
-    sol = sympy.solve(eqlhs.evaluate, target.evaluate, **kwargs)[0]
+        eq = eq.lhs - eq.rhs if eq.rhs != 0 else eq.lhs
+    sol = sympy.solve(eq.evaluate, target.evaluate, **kwargs)[0]
 
     # We need to rebuild the vector/tensor as sympy.solve outputs a tuple of solutions
     # Also need to rebuild the expressiosn that are turned into sympy core types
