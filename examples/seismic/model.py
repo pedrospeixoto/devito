@@ -325,7 +325,8 @@ def demo_model(preset, **kwargs):
                      dtype=np.float32, spacing=spacing, nbpml=nbpml, **kwargs)
 
     elif preset.lower() in ['marmousi-elastic', 'marmousi2d-elastic']:
-        spacing = (5.0, 5.0)
+        factor = kwargs.get('factor', 4)
+        spacing = ([factor*1.25]*2)
         origin = (0., 0.)
         # Read 2D Marmousi model from opesc/data repo
         data_path = kwargs.get('data_path', None)
@@ -336,9 +337,9 @@ def demo_model(preset, **kwargs):
         vs = np.load(os.path.join(data_path, 'Simple2D/VS_elastic.npy'))
         rho = np.load(os.path.join(data_path, 'Simple2D/DENSITY_elastic.npy'))
         # Cut the model to make it slightly cheap
-        v = 1e-3 * np.transpose(v[::4, ::4])
-        vs = 1e-3 * np.transpose(vs[::4, ::4])
-        rho = np.transpose(rho[::4, ::4])
+        v = 1e-3 * np.transpose(v[::factor, ::factor])
+        vs = 1e-3 * np.transpose(vs[::factor, ::factor])
+        rho = np.transpose(rho[::factor, ::factor])
 
         return ModelElastic(space_order=space_order, vp=v, vs=vs, rho=rho,
                             origin=origin, shape=v.shape,
