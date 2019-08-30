@@ -13,10 +13,10 @@ def viscoelastic_2d(model, space_order, save, geometry):
     s = model.grid.stepping_dim.spacing
     cp2 = vp*vp
     cs2 = vs*vs
-    ro = 1/rho
+    ro = 1./rho
 
     mu = cs2*rho
-    l = rho*(cp2 - 2*cs2)
+    l = cp2*rho - 2*mu
     pi = l + 2*mu
 
     f0 = geometry._f0
@@ -69,7 +69,7 @@ def viscoelastic_3d(model, space_order, save, geometry):
     ro = 1/rho
 
     mu = cs2*rho
-    l = rho*(cp2 - 2*cs2)
+    l = cp2*rho - 2*mu
     pi = l + 2*mu
 
     f0 = geometry._f0

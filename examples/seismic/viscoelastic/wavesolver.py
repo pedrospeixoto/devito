@@ -129,4 +129,5 @@ class ViscoelasticWaveSolver(object):
         summary = self.op_fwd(save).apply(src=src, rec1=rec1, vp=vp, qp=qp, vs=vs,
                                           qs=qs, rho=rho, rec2=rec2,
                                           dt=kwargs.pop('dt', self.dt), **kwargs)
+        #summary = self.op_fwd(save).apply(src=src, dt=self.dt)
         return rec1, rec2, vx, vz, txx, tzz, txz, summary

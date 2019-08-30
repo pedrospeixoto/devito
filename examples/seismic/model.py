@@ -58,17 +58,17 @@ def demo_model(preset, **kwargs):
 
     if preset.lower() in ['constant-viscoelastic']:
         # A constant single-layer model in a 2D or 3D domain
-        # with velocity 2.2 km/s.
+        # with velocity 1.6 km/s.
         shape = kwargs.pop('shape', (101, 101))
-        spacing = kwargs.pop('spacing', tuple([10. for _ in shape]))
+        spacing = kwargs.pop('spacing', tuple([1. for _ in shape]))
         origin = kwargs.pop('origin', tuple([0. for _ in shape]))
         nbpml = kwargs.pop('nbpml', 10)
         dtype = kwargs.pop('dtype', np.float32)
-        vp = kwargs.pop('vp', 1.5)
-        qp = kwargs.pop('qp', 10000.)
-        vs = kwargs.pop('vs', 0.5 * vp)
-        qs = kwargs.pop('qs', 7000.)
-        rho = 1.0
+        vp = kwargs.pop('vp', 1.6)
+        qp = kwargs.pop('qp', 40.)
+        vs = kwargs.pop('vs', 0.4)
+        qs = kwargs.pop('qs', 30.)
+        rho = 1.3
 
         return ModelViscoelastic(space_order=space_order, vp=vp, qp=qp, vs=vs,
                                  qs=qs, rho=rho, origin=origin, shape=shape,
@@ -163,24 +163,23 @@ def demo_model(preset, **kwargs):
                             '2layer-viscoelastic']:
         # A two-layer model in a 2D or 3D domain with two different
         # velocities split across the height dimension:
-        # By default, the top part of the domain has 1.5 km/s,
-        # and the bottom part of the domain has 2.5 km/s.
+        # By default, the top part of the domain has 1.6 km/s,
+        # and the bottom part of the domain has 2.2 km/s.
         shape = kwargs.pop('shape', (101, 101))
-        spacing = kwargs.pop('spacing', tuple([10. for _ in shape]))
+        spacing = kwargs.pop('spacing', tuple([1. for _ in shape]))
         origin = kwargs.pop('origin', tuple([0. for _ in shape]))
         dtype = kwargs.pop('dtype', np.float32)
         nbpml = kwargs.pop('nbpml', 10)
-        ratio = kwargs.pop('ratio', 2)
-        vp_top = kwargs.pop('vp_top', 1.5)
-        qp_top = kwargs.pop('qp_top', 10000.)
-        vs_top = kwargs.pop('vs_top', 0. * vp_top)
-        qs_top = kwargs.pop('qs_top', 0.)
-        rho_top = kwargs.pop('rho_top', 1.)
-        vp_bottom = kwargs.pop('vp_bottom', 2.5)
-        qp_bottom = kwargs.pop('qp_bottom', 10000.)
-        vs_bottom = kwargs.pop('vs_bottom', 0. * vp_bottom)
-        qs_bottom = kwargs.pop('qs_bottom', 0.)
-        rho_bottom = kwargs.pop('qs_bottom', 2.5/1.5)
+        vp_top = kwargs.pop('vp_top', 1.6)
+        qp_top = kwargs.pop('qp_top', 40.)
+        vs_top = kwargs.pop('vs_top', 0.4)
+        qs_top = kwargs.pop('qs_top', 30.)
+        rho_top = kwargs.pop('rho_top', 1.3)
+        vp_bottom = kwargs.pop('vp_bottom', 2.2)
+        qp_bottom = kwargs.pop('qp_bottom', 100.)
+        vs_bottom = kwargs.pop('vs_bottom', 1.2)
+        qs_bottom = kwargs.pop('qs_bottom', 70.)
+        rho_bottom = kwargs.pop('qs_bottom', 2.)
 
         # Define a velocity profile in km/s
         vp = np.empty(shape, dtype=dtype)
@@ -190,19 +189,19 @@ def demo_model(preset, **kwargs):
         rho = np.empty(shape, dtype=dtype)
         # Top and bottom P-wave velocity
         vp[:] = vp_top
-        vp[..., int(shape[-1] / ratio):] = vp_bottom
+        vp[..., int(0.6*shape[-1])+1:] = vp_bottom
         # Top and bottom P-wave quality factor
         qp[:] = qp_top
-        qp[..., int(shape[-1] / ratio):] = qp_bottom
+        qp[..., int(0.6*shape[-1])+1:] = qp_bottom
         # Top and bottom S-wave velocity
         vs[:] = vs_top
-        vs[..., int(shape[-1] / ratio):] = vs_bottom
+        vs[..., int(0.6*shape[-1])+1:] = vs_bottom
         # Top and bottom S-wave quality factor
         qs[:] = qs_top
-        qs[..., int(shape[-1] / ratio):] = qs_bottom
+        qs[..., int(0.6*shape[-1])+1:] = qs_bottom
         # Top and bottom density
         rho[:] = rho_top
-        rho[..., int(shape[-1] / ratio):] = rho_bottom
+        rho[..., int(0.6*shape[-1])+1:] = rho_bottom
 
         return ModelViscoelastic(space_order=space_order, vp=vp, qp=qp,
                                  vs=vs, qs=qs, rho=rho, origin=origin,
@@ -800,7 +799,6 @@ class ModelElastic(GenericModel):
         #
         # The CFL condtion is then given by
         # dt < h / (sqrt(2) * max(vp)))
-        # FIXME: Fix 'Constant' so that that mmax(self.vp) returns the data value
         return self.dtype(.5*np.min(self.spacing) / (np.sqrt(2)*mmax(self.vp)))
 
 
@@ -861,7 +859,6 @@ class ModelViscoelastic(ModelElastic):
         # For a fixed time order this number decreases as the space order increases.
         # See Blanch, J. O., 1995, "A study of viscous effects in seismic modelling,
         # imaging, and inversion: methodology, computational aspects and sensitivity"
-        # for further details:
-        # FIXME: Fix 'Constant' so that that mmax(self.vp) returns the data value
-        return self.dtype(6.*np.min(self.spacing) /
+        # for further details.
+        return self.dtype(0.5*6.*np.min(self.spacing) /
                           (7.*np.sqrt(self.grid.dim)*mmax(self.vp)))

@@ -7,7 +7,7 @@ from examples.seismic.viscoelastic import ViscoelasticWaveSolver
 from examples.seismic import demo_model, AcquisitionGeometry
 
 
-def viscoelastic_setup(shape=(50, 50), spacing=(15.0, 15.0), tn=500., space_order=4,
+def viscoelastic_setup(shape=(101, 101), spacing=(1.0, 1.0), tn=500., space_order=4,
                        nbpml=10, constant=True, **kwargs):
 
     nrec = 2*shape[0]
@@ -27,21 +27,22 @@ def viscoelastic_setup(shape=(50, 50), spacing=(15.0, 15.0), tn=500., space_orde
         rec_coordinates[:, 1] = np.array(model.domain_size)[1] * .5
         rec_coordinates[:, -1] = model.origin[-1] + 2 * spacing[-1]
     geometry = AcquisitionGeometry(model, rec_coordinates, src_coordinates,
-                                   t0=0.0, tn=tn, src_type='Ricker', f0=0.010)
+                                   t0=0.0, tn=tn, src_type='Ricker', f0=0.12)
 
     # Create solver object to provide relevant operators
     solver = ViscoelasticWaveSolver(model, geometry, space_order=space_order, **kwargs)
     return solver
 
 
-def run(shape=(50, 50), spacing=(20.0, 20.0), tn=1000.0,
+def run(shape=(101, 101), spacing=(1.0, 1.0), tn=50.0,
         space_order=4, nbpml=40, autotune=False, constant=False, **kwargs):
 
     solver = viscoelastic_setup(shape=shape, spacing=spacing, nbpml=nbpml, tn=tn,
                                 space_order=space_order, constant=constant, **kwargs)
     info("Applying Forward")
     # Define receiver geometry (spread across x, just below surface)
-    rec1, rec2, vx, vz, txx, tzz, txz, summary = solver.forward(autotune=autotune)
+    #rec1, rec2, vx, vz, txx, tzz, txz, summary = solver.forward(autotune=autotune)
+    rec1, rec2, vx, vz, txx, tzz, txz, summary = solver.forward()
 
     return (summary.gflopss, summary.oi, summary.timings,
             [rec1, rec2, vx, vz, txx, tzz, txz])
@@ -50,8 +51,11 @@ def run(shape=(50, 50), spacing=(20.0, 20.0), tn=1000.0,
 def test_viscoelastic():
     _, _, _, [rec1, rec2, vx, vz, txx, tzz, txz] = run()
     norm = lambda x: np.linalg.norm(x.data.reshape(-1))
-    assert np.isclose(norm(rec1), 15.962572, atol=1e-3, rtol=0)
-    assert np.isclose(norm(rec2), 1.3817718, atol=1e-3, rtol=0)
+    #assert np.isclose(norm(rec1), 15.962572, atol=1e-3, rtol=0)
+    #assert np.isclose(norm(rec2), 1.3817718, atol=1e-3, rtol=0)
+    #assert np.isclose(np.linalg.norm(vx.data[-1]), 1.3352393e-05, atol=1e-3, rtol=0)
+    assert np.isclose(np.max(vx.data[-1]), 0.0031597025, atol=1e-4, rtol=0)
+    assert np.isclose(np.max(tzz.data[-1]), 0.008343756, atol=1e-4, rtol=0)
 
 
 if __name__ == "__main__":
@@ -78,14 +82,14 @@ if __name__ == "__main__":
 
     # 2D preset parameters
     if args.dim2:
-        shape = (150, 150)
-        spacing = (10.0, 10.0)
-        tn = 750.0
+        shape = (101, 101)
+        spacing = (1.0, 1.0)
+        tn = 500.0
     # 3D preset parameters
     else:
-        shape = (150, 150, 150)
-        spacing = (10.0, 10.0, 10.0)
-        tn = 1250.0
+        shape = (101, 101, 101)
+        spacing = (1.0, 1.0, 1.0)
+        tn = 1000.0
 
     run(shape=shape, spacing=spacing, nbpml=args.nbpml, tn=tn, dle=args.dle,
         space_order=args.space_order, autotune=args.autotune, constant=args.constant,
