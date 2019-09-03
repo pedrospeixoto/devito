@@ -108,7 +108,7 @@ def option_performance(f):
         return value
 
     def config_autotuning(ctx, param, value):
-        """Setup auto-tuning to run in ``{basic,aggressive,...}+preemptive`` mode."""
+        """Setup auto-tuning to run in ``{basic,aggressive,...}+destructive`` mode."""
         if value != 'off':
             # Sneak-peek at the `block-shape` -- if provided, keep auto-tuning off
             if ctx.params['block_shape']:
@@ -116,8 +116,8 @@ def option_performance(f):
                         % str(ctx.params['block_shape']))
                 level = False
             else:
-                # Make sure to always run in preemptive mode
-                configuration['autotuning'] = [value, 'preemptive']
+                # Make sure to always run in 'destructive' mode
+                configuration['autotuning'] = [value, 'destructive']
                 # We apply blocking to all parallel loops, including the innermost ones
                 configuration['dle-options']['blockinner'] = True
                 level = value
