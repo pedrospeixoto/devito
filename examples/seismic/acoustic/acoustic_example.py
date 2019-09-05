@@ -49,11 +49,7 @@ def run(shape=(50, 50, 50), spacing=(20.0, 20.0, 20.0), tn=1000.0,
     save = full_run and not checkpointing
     # Define receiver geometry (spread across x, just below surface)
     rec, u, summary = solver.forward(save=save, autotune=autotune)
-    try:
-        from mpi4py import MPI
-        np,save("rec%s.npy"%MPI.COMM_WORLD.rank, rec.data[:, :])
-    except Error:
-        pass
+
     if preset == 'constant':
         # With  a new m as Constant
         v0 = Constant(name="v", value=2.0, dtype=np.float32)
