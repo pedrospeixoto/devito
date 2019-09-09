@@ -10,7 +10,6 @@ from devito import (Grid, Function, TimeFunction, SparseTimeFunction, SubDimensi
                     Eq, Operator, solve, switchconfig)
 from devito.dle import BlockDimension, NThreads, transform
 from devito.dle.parallelizer import nhyperthreads
-from devito.exceptions import InvalidArgument
 from devito.ir.equations import DummyEq
 from devito.ir.iet import (Call, Expression, Iteration, Conditional, FindNodes,
                            FindSymbols, iet_analyze, retrieve_iteration_tree)
@@ -245,32 +244,6 @@ def test_cache_blocking_edge_cases_highorder(shape, blockshape):
                                                            {'blockinner': True}))
 
     assert np.allclose(wo_blocking, w_blocking, rtol=1e-12)
-
-
-@pytest.mark.parametrize("blockshape0,blockshape1,exception", [
-    ((24, 24, 40), (24, 24, 40), False),
-    ((24, 24, 40), (4, 4, 4), False),
-    ((24, 24, 40), (8, 8, 8), False),
-    ((20, 20, 12), (4, 4, 4), False),
-    ((28, 32, 16), (14, 16, 8), False),
-    ((12, 12, 60), (4, 12, 4), False),
-    ((12, 12, 60), (4, 5, 4), True),  # not a perfect divisor
-    ((12, 12, 60), (24, 4, 4), True),  # bigger than outer block
-])
-def test_cache_blocking_hierarchical(blockshape0, blockshape1, exception):
-    shape = (51, 102, 71)
-
-    wo_blocking, a = _new_operator3(shape, dle='noop')
-    try:
-        w_blocking, b = _new_operator3(shape, blockshape0, blockshape1,
-                                       dle=('blocking', {'blockinner': True,
-                                                         'blocklevels': 2}))
-        assert not exception
-        assert np.allclose(wo_blocking, w_blocking, rtol=1e-12)
-    except InvalidArgument:
-        assert exception
-    except:
-        assert False
 
 
 class TestNodeParallelism(object):
