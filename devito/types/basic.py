@@ -700,12 +700,14 @@ class AbstractCachedFunction(AbstractFunction, Cached, Evaluable):
             else:
                 weight *= 1/2
                 avg = True
-                avg_list = [a.subs({i: i - d.spacing/2}) + a.subs({i: i + d.spacing/2})
-                            for a in avg_list]
+                avg_list = ([a.subs({i: i - d.spacing/2})for a in avg_list] +
+                            [a.subs({i: i + d.spacing/2}) for a in avg_list])
 
         if not avg:
             return self
+
         return weight * sum(avg_list)
+
 
     def index(self, dim):
         inds = [self.indices[i] for i, d in enumerate(self.dimensions) if d == dim]

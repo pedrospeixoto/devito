@@ -865,7 +865,7 @@ class SparseFunction(AbstractSparseFunction):
             comm.Alltoallv([coords, rcount, rdisp, mpitype],
                            [gathered, scount, sdisp, mpitype])
 
-            self._coordinates.data._local[:] = gathered[self._dist_subfunc_gather_mask]
+            self._coordinates._data[:] = gathered[self._dist_subfunc_gather_mask]
 
     # Pickling support
     _pickle_kwargs = AbstractSparseFunction._pickle_kwargs + ['coordinates_data']

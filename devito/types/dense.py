@@ -164,12 +164,14 @@ class DiscreteFunction(AbstractCachedFunction, ArgProvider):
         return {self.function}
 
     @property
+    @_allocate_memory
     def _data_buffer(self):
         """
         Reference to the data. Unlike :attr:`data` and :attr:`data_with_halo`,
         this *never* returns a view of the data. This method is for internal use only.
         """
-        return self._data_allocated
+        self._is_halo_dirty = False
+        return np.asarray(self._data)
 
     @property
     def _data_alignment(self):

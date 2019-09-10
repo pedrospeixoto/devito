@@ -790,10 +790,10 @@ class ModelElastic(GenericModel):
 
         self._physical_parameters = as_tuple(physical_parameters)
 
-    def _gen_phys_param(self, field, name, space_order, is_param=False):
+    def _gen_phys_param(self, field, name, space_order, is_param=False, **kwargs):
         if isinstance(field, np.ndarray):
             function = Function(name=name, grid=self.grid, space_order=space_order,
-                                parameter=is_param)
+                                parameter=is_param, **kwargs)
             initialize_function(function, field, self.nbpml)
         else:
             function = Constant(name=name, value=field)
@@ -811,7 +811,7 @@ class ModelElastic(GenericModel):
         # Remeber that for staggered grid, FD is formulated on an h/2 grid
         #  so needs .5 * h
         coeff = np.sqrt(3) if len(self.shape) == 3 else np.sqrt(3)
-        return self.dtype(.48*mmin(self.spacing) / (coeff*self.maxvp))
+        return self.dtype(.9*mmin(self.spacing) / (coeff*self.maxvp))
 
 
 class ModelViscoelastic(ModelElastic):
