@@ -17,7 +17,7 @@ from devito.yask.utils import (Offloaded, make_var_accesses, make_sharedptr_func
                                namespace)
 from devito.yask.wrappers import contexts
 from devito.yask.transformer import yaskit
-from devito.yask.types import YaskVarObject, YaskSolnObject
+from devito.yask.types import YaskVarObject, YaskSolnObject, CacheManager
 
 __all__ = ['Operator']
 
@@ -135,6 +135,9 @@ class OperatorYASK(Operator):
         return super(OperatorYASK, self).arguments(backend=args, **kwargs)
 
     def apply(self, **kwargs):
+        # Free memory carried by stale symbolic objects
+        clear_cache()
+
         # Build the arguments list to invoke the kernel function
         args = self.arguments(**kwargs)
 
@@ -207,3 +210,6 @@ class OperatorYASK(Operator):
             local_vars = [i for i in self.parameters if i.name in local_vars]
             yk_soln = context.make_yk_solution(name, None, local_vars)
             self.yk_solns[(dimensions, yk_soln_obj)] = yk_soln
+
+
+clear_cache = CacheManager().clear
