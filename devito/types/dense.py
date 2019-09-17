@@ -507,7 +507,7 @@ class DiscreteFunction(AbstractCachedFunction, ArgProvider):
         size = getattr(getattr(self, '_size_%s' % region.name)[dim], side.name)
         index_array = [slice(offset, offset+size) if d is dim else slice(None)
                        for d in self.dimensions]
-        return np.asarray(self._data[index_array])
+        return np.copy(np.asarray(self._data._global(index_array, self._decomposition)))
 
     @property
     @_allocate_memory
