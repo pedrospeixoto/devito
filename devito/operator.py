@@ -521,11 +521,6 @@ class Operator(Callable):
         >>> op = Operator(Eq(u3.forward, u3 + 1))
         >>> summary = op.apply(time_M=10)
         """
-        # Clear up both SymPy and Devito caches. Any stale object carrying data
-        # that is no longer in use within user code should now be dropped to free
-        # up memory
-        clear_cache()
-
         # Build the arguments list to invoke the kernel function
         args = self.arguments(**kwargs)
 
@@ -548,6 +543,11 @@ class Operator(Callable):
 
         # Post-process runtime arguments
         self._postprocess_arguments(args, **kwargs)
+
+        # Clear up both SymPy and Devito caches. Any stale object carrying data
+        # that is no longer in use within user code should now be dropped to free
+        # up memory
+        clear_cache()
 
         # Output summary of performance achieved
         return self._profile_output(args)
