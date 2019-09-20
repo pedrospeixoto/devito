@@ -9,7 +9,7 @@ pexpect = pytest.importorskip('yask')  # Run only if YASK is available
 from conftest import skipif  # noqa
 from devito import (Eq, Grid, Dimension, ConditionalDimension, Operator, Constant,
                     Function, TimeFunction, SparseTimeFunction, configuration,
-                    clear_cache, switchconfig)  # noqa
+                    switchconfig)  # noqa
 from devito.ir.iet import FindNodes, ForeignExpression, retrieve_iteration_tree  # noqa
 from examples.seismic.acoustic import iso_stencil  # noqa
 from examples.seismic import demo_model, TimeAxis, RickerSource, Receiver  # noqa
@@ -38,10 +38,6 @@ class TestOperatorSimple(object):
     """
     Test execution of "toy" Operators through YASK.
     """
-
-    @classmethod
-    def setup_class(cls):
-        clear_cache()
 
     @pytest.mark.parametrize("space_order", [0, 1, 2])
     @pytest.mark.parametrize("nosimd", [True, False])
@@ -361,9 +357,6 @@ class TestOperatorAdvanced(object):
     Test execution of non-trivial Operators through YASK.
     """
 
-    def setup_method(self, method):
-        clear_cache()
-
     def test_misc_dims(self):
         """
         Tests grid-independent Functions, which require YASK's "misc" dimensions.
@@ -444,10 +437,6 @@ class TestIsotropicAcoustic(object):
 
     This test is very similar to the one in test_adjointA.
     """
-
-    @classmethod
-    def setup_class(cls):
-        clear_cache()
 
     @property
     def shape(self):
