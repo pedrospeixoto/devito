@@ -381,6 +381,122 @@ def plot(problem, **kwargs):
                            oi_annotate=oi_annotate, point_annotate=point_annotate)
 
 
+@benchmark.command(name='plotline')
+@click.option('--backend', default='core',
+              type=click.Choice(configuration._accepted['backend']),
+              help='Used execution backend (e.g., core, yask)')
+@click.option('-r', '--resultsdir', default='results',
+              help='Directory containing results')
+@click.option('--max-bw', type=float,
+              help='Max GB/s of the DRAM')
+@click.option('--flop-ceil', type=(float, str), multiple=True,
+              help='Max GFLOPS/s of the CPU. A 2-tuple (float, str)'
+                   'is expected, where the float is the performance'
+                   'ceil (GFLOPS/s) and the str indicates how the'
+                   'ceil was obtained (ideal peak, linpack, ...)')
+@click.option('--point-runtime', is_flag=True, default=True,
+              help='Annotate points with runtime values')
+@click.option('--section', default=None,
+              help='Code section for which the roofline is plotted')
+@option_simulation
+@option_performance
+def cli_plotline(problem, **kwargs):
+    """
+    Plotting mode to generate plots for performance analysis.
+    """
+    plotline(problem, **kwargs)
+
+
+def plotline(problem, **kwargs):
+    """
+    Plotting mode to generate plots for performance analysis.
+    """
+    backend = kwargs.pop('backend')
+    resultsdir = kwargs.pop('resultsdir')
+    autotune = kwargs['autotune']
+
+    arch = kwargs['arch']
+    space_order = "[%s]" % ",".join(str(i) for i in kwargs['space_order'])
+    time_order = kwargs['time_order']
+    shape = "[%s]" % ",".join(str(i) for i in kwargs['shape'])
+
+    section = kwargs.pop('section')
+    if not section:
+        warning("No `section` provided. Using `%s`'s default `%s`"
+                % (problem, model_type[problem]['default-section']))
+        section = model_type[problem]['default-section']
+
+    LinePlotter = get_ob_lineplotter()
+    bench = get_ob_bench(problem, resultsdir, kwargs)
+
+    bench.load()
+    if not bench.loaded:
+        warning("Could not load any results, nothing to plot. Exiting...")
+        sys.exit(0)
+
+    gflopss = bench.lookup(params=kwargs, measure="gflopss", event=section)
+    oi = bench.lookup(params=kwargs, measure="oi", event=section)
+    time = bench.lookup(params=kwargs, measure="timings", event=section)
+
+    # What plot am I?
+    modes = [i for i in ['dse', 'dle', 'autotune']
+             if len(set(dict(j)[i] for j in gflopss)) > 1]
+
+    # Filename
+    figname = "%s_dim%s_so%s_to%s_arch[%s]_bkend[%s]_at[%s]pdf" % (
+        problem, shape, space_order, time_order, arch, backend, autotune
+    )
+
+    # Legend setup. Do not plot a legend if there's no variation in performance
+    # options (dse, dle, autotune)
+    if modes:
+        legend = {'loc': 'upper left', 'fontsize': 7, 'ncol': 4}
+    else:
+        legend = 'drop'
+
+    avail_colors = ['r', 'g', 'b', 'y', 'k', 'm']
+    avail_markers = ['o', 'x', '^', 'v', '<', '>']
+
+    used_colors = {}
+    used_markers = {}
+
+    # Find min and max runtimes for instances having the same OI
+    min_max = {v: [0, sys.maxsize] for v in oi.values()}
+    for k, v in time.items():
+        i = oi[k]
+        min_max[i][0] = v if min_max[i][0] == 0 else min(v, min_max[i][0])
+        min_max[i][1] = v if min_max[i][1] == sys.maxsize else max(v, min_max[i][1])
+
+    with LinePlotter(figname=figname, plotdir=resultsdir) as plot:
+        for k, v in gflopss.items():
+            so = dict(k)['space_order']
+
+            oi_value = oi[k]
+            time_value = time[k]
+
+            run = tuple(dict(k)[i] for i in modes)
+            label = ("<%s>" % ','.join(run)) if run else None
+
+            color = used_colors[run] if run in used_colors else avail_colors.pop(0)
+            used_colors.setdefault(run, color)
+            marker = used_markers[so] if so in used_markers else avail_markers.pop(0)
+            used_markers.setdefault(so, marker)
+
+            oi_loc = 0.076 if len(str(so)) == 1 else 0.09
+            oi_annotate = {'s': 'SO=%s' % so, 'size': 6, 'xy': (oi_value, oi_loc)}
+            if time_value in min_max[oi_value]:
+                # Only annotate min and max runtimes on each OI line, to avoid
+                # polluting the plot too much
+                point_annotate = {'s': "%.0fs" % time_value, 'xytext': (0.0, 5.5),
+                                  'size': 6, 'rotation': 0}
+            else:
+                point_annotate = None
+            oi_line = time_value == min_max[oi_value][0]
+            if oi_line:
+                perf_annotate = {'size': 6, 'xytext': (-4, 5)}
+
+            plot.add_line( ([oi[k],oi[k]+1]), ([1,3]) )
+
 def get_ob_bench(problem, resultsdir, parameters):
     """Return a special ``opescibench.Benchmark`` to manage performance runs."""
     try:
@@ -458,6 +574,16 @@ def get_ob_plotter():
                           'To plot performance results, make sure to have the'
                           'Matplotlib package installed')
     return RooflinePlotter
+
+def get_ob_lineplotter():
+    try:
+        from opescibench import LinePlotter
+    except:
+        raise ImportError('Could not import opescibench utility package.\n'
+                          'Please install https://github.com/opesci/opescibench'
+                          'To plot performance results, make sure to have the'
+                          'Matplotlib package installed')
+    return LinePlotter
 
 
 if __name__ == "__main__":
