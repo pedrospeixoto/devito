@@ -31,7 +31,7 @@ plot.close("all") # fecha todas as janelas
 #==============================================================================
 # Parâmetros do Problema 
 #==============================================================================
-nmodelos   = 100
+nmodelos   = 100000
 
 nptx       = 101
 nptz       = 51
@@ -89,16 +89,17 @@ for i in range(0,nmodelos):
 # Construção do Modelo de Velocidade
 #==============================================================================
     plt_name="data_save/model_plt_%d"%i 
-    print(plt_name)
+    print(i)
+
     if i>0:
         # Seeding the RNG
         np.random.seed(int(time.time()))
 
         # Generates the model
-        start = time.time()
+        #start = time.time()
         model = generateRandomModel(shape, spacing, origin)
-        end = time.time()
-        print(end - start)
+        #end = time.time()
+        #print(end - start)
         if verbosity > 0:
             plot_velocity(model, pltname=plt_name)
     
