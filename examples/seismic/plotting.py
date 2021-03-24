@@ -47,7 +47,7 @@ def plot_perturbation(model, model1, colorbar=True):
     plt.show()
 
 
-def plot_velocity(model, source=None, receiver=None, colorbar=True, cmap="jet", pltname="vel"):
+def plot_velocity(model, source=None, receiver=None, colorbar=True, cmap="jet", pltname=None):
     """
     Plot a two-dimensional velocity field from a seismic `Model`
     object. Optionally also includes point markers for sources and receivers.
@@ -100,13 +100,14 @@ def plot_velocity(model, source=None, receiver=None, colorbar=True, cmap="jet", 
         cbar = plt.colorbar(plot, cax=cax)
         cbar.set_label('Velocity (km/s)')
 
-    #plt.savefig(pltname+'.png')
-    #plt.clf()
+    if pltname is not None:
+        plt.savefig(pltname+'.png')
+    
     plt.show()
 
 
 
-def plot_shotrecord(rec, model, t0, tn, colorbar=True):
+def plot_shotrecord(rec, model, t0, tn, colorbar=True, pltname=None):
     """
     Plot a shot record (receiver values over time).
 
@@ -135,6 +136,9 @@ def plot_shotrecord(rec, model, t0, tn, colorbar=True):
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.05)
         plt.colorbar(plot, cax=cax)
+        
+    if pltname is not None:
+        plt.savefig(pltname+'.png')
     plt.show()
 
 
