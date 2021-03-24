@@ -100,10 +100,10 @@ def plot_velocity(model, source=None, receiver=None, colorbar=True, cmap="jet", 
         cbar = plt.colorbar(plot, cax=cax)
         cbar.set_label('Velocity (km/s)')
 
-    plt.savefig(pltname+'.png')
+    #plt.savefig(pltname+'.png')
     #plt.clf()
     plt.show()
-    
+
 
 
 def plot_shotrecord(rec, model, t0, tn, colorbar=True):
