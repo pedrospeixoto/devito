@@ -60,14 +60,14 @@ nzrecpos   = 20.
 # Number of layers for the model
 numberOfLayers = 5
 
-verbosity = 1
+verbosity = 0
 
 #==============================================================================
 
 #==============================================================================
 for i in range(0,nmodelos):
 #==============================================================================
-    print(i)
+    
 #==============================================================================
 # Parâmetros de Malha
 #==============================================================================
@@ -88,22 +88,24 @@ for i in range(0,nmodelos):
 #==============================================================================
 # Construção do Modelo de Velocidade
 #==============================================================================
+    plt_name="data_save/model_plt_%d"%i 
+    print(plt_name)
     if i>0:
         # Seeding the RNG
         np.random.seed(int(time.time()))
 
         # Generates the model
         start = time.time()
-        model = generateRandomModel(shape, spacing, origin, numberOfLayers)
+        model = generateRandomModel(shape, spacing, origin)
         end = time.time()
         print(end - start)
         if verbosity > 0:
-            plot_velocity(model)
+            plot_velocity(model, pltname=plt_name)
     
     else: # homogeneous condition, reference
         model = Model(vp=v,origin=origin,shape=shape,spacing=spacing,space_order=sou,nbl=nbl,bcs="damp")
         if verbosity > 0:
-            plot_velocity(model)
+            plot_velocity(model, pltname=plt_name)
 
 #==============================================================================
     field = np.transpose(model.vp.data)
@@ -114,16 +116,16 @@ for i in range(0,nmodelos):
 #==============================================================================
 # Construção Parâmetros Temporais
 #==============================================================================
-    dt         = model.critical_dt 
-    print(dt)
-    time_range = TimeAxis(start=t0,stop=tn,step=dt)
+    dt_ref         = model.critical_dt 
+    #time_range = TimeAxis(start=t0,stop=tn,step=dt)
     
     #vmax  = np.amax(v) 
     #dtmax = (min(hx,hz)*CFL)/(vmax)   
     #ntmax = int((tn-t0)/dtmax)+1
-    ntmax = 201
+    ntmax = 401
     dt    = (tn-t0)/(ntmax)
-    print(dt)
+    if dt > dt_ref:
+        print("Warning: dt:", dt, " dt_ref:", dt_ref)
     time_range = TimeAxis(start=t0,stop=tn,step=dt)
 #==============================================================================
 
