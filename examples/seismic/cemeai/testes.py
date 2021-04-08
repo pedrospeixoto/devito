@@ -85,12 +85,13 @@ class teste2:
     nbl        = 150 
     t0         = 0.
     tn         = 2000.
-    ntmax      = 14000
+    ntmax      = 2000
     CFL        = 0.4
     nfonte     = 9
     f0         = 0.02 
     #nxfontpos  = np.array([2500,4500,6500,8500,10500,12500])   
-    nxfontpos  = np.array([4500, 5500, 6500, 7500, 8500, 9500, 10500, 11500, 12500])   
+    #nxfontpos  = np.array([4500, 5500, 6500, 7500, 8500, 9500, 10500, 11500, 12500])   
+    nxfontpos  = np.array([4500, 5500])
     nzfontpos  = 50.                        
     nrec       = nptx
     nxrecpos   = np.linspace(x0,x1,nrec)   

@@ -118,9 +118,9 @@ rec_homo   = np.zeros((number_xfontpos,ntmax+1,nrec))
 dt_ref0 = model0.critical_dt 
 dt0     = (tn-t0)/(ntmax)
     
-if(dt0>dt_ref0):
+#if(dt0>dt_ref0):
     
-    print("Warning: dt: ", dt0, " dt_ref: ", dt_ref0)
+print("dt: ", dt0, " dt_ref: ", dt_ref0)
     
 time_range0 = TimeAxis(start=t0,stop=tn,step=dt0)
 
@@ -171,12 +171,9 @@ rec_homo[0,:,:] = rec0.data[:,:]
 #==============================================================================
 # For para o Número de Fontes
 #==============================================================================
-print("Homogeneous Problem")
-print("dt:", model0.critical_dt, dt0)
-
 for k in range(0,number_xfontpos):    
 #==============================================================================
-    print("Source:", k)
+    print("Homogen Source:", k)
 #==============================================================================
 # Atualização da Fonte de Ricker Modelo Homogeneo
 #==============================================================================
@@ -207,8 +204,9 @@ for k in range(0,number_xfontpos):
 #==============================================================================
 # Variando os Tipos de Camadas Aleatórias
 #==============================================================================
+print()
 for tmodel in range(0,ncamadas):
-    
+
     if(tmodel==0): nmodelos = N0
     if(tmodel==1): nmodelos = N1
     if(tmodel==2): nmodelos = N2
@@ -220,7 +218,7 @@ for tmodel in range(0,ncamadas):
 #==============================================================================
     for i in range(0,nmodelos):
 #==============================================================================
-    
+        print("Model Type ", tmodel, " Number", i)
 #==============================================================================
 # Construção do Modelo de Velocidade
 #==============================================================================     
