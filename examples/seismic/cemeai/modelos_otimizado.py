@@ -123,6 +123,10 @@ if(dt0>dt_ref0):
     print("Warning: dt: ", dt0, " dt_ref: ", dt_ref0)
     
 time_range0 = TimeAxis(start=t0,stop=tn,step=dt0)
+
+dt=dt0
+time_range=time_range0
+
 #==============================================================================
 
 #==============================================================================
@@ -176,10 +180,10 @@ for k in range(0,number_xfontpos):
 #==============================================================================
 # Atualização da Fonte de Ricker Modelo Homogeneo
 #==============================================================================
-    src0 = RickerSource(name='src0',grid=model0.grid,f0=f0,npoint=nfonte,time_range=time_range0)
+    #src0 = RickerSource(name='src0',grid=model0.grid,f0=f0,npoint=nfonte,time_range=time_range0)
     nxfontpos                   = nxfontposv[k]
     src0.coordinates.data[:, 0] = nxfontpos
-    src0.coordinates.data[:, 1] = nzfontpos
+    #src0.coordinates.data[:, 1] = nzfontpos
 #==============================================================================
     
 #==============================================================================
@@ -237,39 +241,30 @@ for tmodel in range(0,ncamadas):
         np.save("data_save/vel_model_data_%d_type_%d"%(i,tmodel),field)
 #==============================================================================
 
-#==============================================================================
-# Construção Parâmetros Temporais do Modelo Teste
-#==============================================================================
-        dt_ref = model.critical_dt 
-        dt     = (tn-t0)/(ntmax)
-    
-        if(dt>dt_ref):
-    
-            print("Warning: dt: ", dt, " dt_ref: ", dt_ref)
-    
-        time_range = TimeAxis(start=t0,stop=tn,step=dt)
-#==============================================================================
+
 
 #==============================================================================
 # Construção Receivers Modelo Teste
 #==============================================================================
-        rec = Receiver(name='rec',grid=model.grid,npoint=nrec,time_range=time_range)
-        rec.coordinates.data[:,0] = nxrecpos
-        rec.coordinates.data[:,1] = nzrecpos 
+        if i == 0:
+            rec = Receiver(name='rec',grid=model.grid,npoint=nrec,time_range=time_range)
+            rec.coordinates.data[:,0] = nxrecpos
+            rec.coordinates.data[:,1] = nzrecpos 
 #==============================================================================
 
 #==============================================================================
 # Construção Fonte de Ricker Modelo Teste
 #==============================================================================
-        src = RickerSource(name='src', grid=model.grid,f0=f0,npoint=nfonte,time_range=time_range)
-        src.coordinates.data[:, 0] = nxfontposv[0]
-        src.coordinates.data[:, 1] = nzfontpos
+            src = RickerSource(name='src', grid=model.grid,f0=f0,npoint=nfonte,time_range=time_range)
+            src.coordinates.data[:, 0] = nxfontposv[0]
+            src.coordinates.data[:, 1] = nzfontpos
 #==============================================================================
 
 #==============================================================================
 # Construção dos Campos Modelo Teste
 #==============================================================================
-        u        = TimeFunction(name="u",grid=model.grid, time_order=tou, space_order=sou)
+            u        = TimeFunction(name="u",grid=model.grid, time_order=tou, space_order=sou)
+
         pde      = model.m * u.dt2 - u.laplace + model.damp * u.dt
         stencil  = Eq(u.forward, solve(pde, u.forward))
         src_term = src.inject(field=u.forward, expr=src * dt**2 / model.m)
@@ -306,10 +301,10 @@ for tmodel in range(0,ncamadas):
 #==============================================================================
 # Atualização Fonte de Ricker Modelo Teste
 #==============================================================================
-            src = RickerSource(name='src', grid=model.grid,f0=f0,npoint=nfonte,time_range=time_range)
+            #src = RickerSource(name='src', grid=model.grid,f0=f0,npoint=nfonte,time_range=time_range)
             nxfontpos                  = nxfontposv[k]
             src.coordinates.data[:, 0] = nxfontpos
-            src.coordinates.data[:, 1] = nzfontpos
+            #src.coordinates.data[:, 1] = nzfontpos
 #==============================================================================
 
 #==============================================================================
