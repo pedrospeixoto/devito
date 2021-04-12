@@ -63,11 +63,11 @@ class teste2:
 #==============================================================================
 #Parâmetros de Malha e Tempo
 #==============================================================================
-    ncamadas   = 4
-    N0         = 2
-    N1         = 2
-    N2         = 2  
-    N3         = 2  
+    ncamadas   = 4   #Numero de tipo de esquemas de camadas
+    N0         = 40   #numero de amostras do tipo de esquema só horizontal
+    N1         = 40   #numero de amostras do tipo de esquema só retas
+    N2         = 40   #numero de amostras do tipo de esquema só gaussianas
+    N3         = 40   #numero de amostras do tipo de esquema misto de tudo
     nptx       = 901
     nptz       = 321
     x0         = 4000
@@ -84,19 +84,18 @@ class teste2:
     tou        = 2
     nbl        = 150 
     t0         = 0.
-    tn         = 2000.
-    ntmax      = 2000
+    tn         = 5000.
+    ntmax      = 5000
     CFL        = 0.4
-    nfonte     = 9
+    nfonte     = 1
     f0         = 0.02 
-    #nxfontpos  = np.array([2500,4500,6500,8500,10500,12500])   
-    #nxfontpos  = np.array([4500, 5500, 6500, 7500, 8500, 9500, 10500, 11500, 12500])   
-    nxfontpos  = np.array([4500, 5500])
+    #nxfontpos  = np.array([4500])
+    nxfontpos  = np.array([4500, 5500, 6500, 7500, 8500, 9500, 10500, 11500, 12500])   
     nzfontpos  = 50.                        
     nrec       = nptx
     nxrecpos   = np.linspace(x0,x1,nrec)   
     nzrecpos   = 50.            
     verbosity  = 1
     sintmodel  = 1
-    max_layers = 7
+    max_layers = 10
 #==============================================================================

@@ -110,23 +110,20 @@ vhomo      = np.empty(shape,dtype=np.float32)
 vhomo[:,:] = vmodelmin     
 model0     = Model(vp=vhomo,origin=origin,shape=shape,spacing=spacing,space_order=sou,nbl=nbl,bcs="damp")
 rec_homo   = np.zeros((number_xfontpos,ntmax+1,nrec))
+
 #==============================================================================
+if(verbosity>0):
+    rplot.graph2dvel(model0.vp.data,teste,0,-1)    
 
 #==============================================================================
 # Construção Parâmetros Temporais do Modelo Hohomogeneo
 #==============================================================================
-dt_ref0 = model0.critical_dt 
-dt0     = (tn-t0)/(ntmax)
-    
-#if(dt0>dt_ref0):
-    
-print("dt: ", dt0, " dt_ref: ", dt_ref0)
-    
+dt_ref0     = model0.critical_dt 
+dt0         = np.float32((tn-t0)/(ntmax))
 time_range0 = TimeAxis(start=t0,stop=tn,step=dt0)
-
-dt=dt0
-time_range=time_range0
-
+dt          = dt0
+time_range  = time_range0
+print("dt: ", dt0, " dt_ref: ", dt_ref0)
 #==============================================================================
 
 #==============================================================================
@@ -148,24 +145,17 @@ rec0.coordinates.data[:,1] = nzrecpos
 #==============================================================================
 # Construção dos Campos Modelo Homogêneo
 #==============================================================================
-u0         = TimeFunction(name="u0",grid=model0.grid,time_order=tou,space_order=sou)
+u0         = TimeFunction(name="u0",grid=model0.grid,time_order=tou,space_order=sou)    
 pde0       = model0.m * u0.dt2 - u0.laplace + model0.damp * u0.dt
 stencil0   = Eq(u0.forward, solve(pde0, u0.forward))
 src_term0  = src0.inject(field=u0.forward, expr=src0* dt0**2 / model0.m)
-rec_term0  = rec0.interpolate(expr=u0.forward)
+rec_term0  = rec0.interpolate(expr=u0)
 #==============================================================================
 
 #==============================================================================
-# Construção e Execução dos Operadores Modelo Homogeneo
+# Construção do Operador do Modelo Homogeneo
 #==============================================================================
 op0 = Operator([stencil0] + src_term0 + rec_term0, subs=model0.spacing_map)
-#op0(time=time_range0.num-1,dt=model0.critical_dt)
-#==============================================================================
-
-#==============================================================================
-# Salvando Informações dos Receiveris do Modelo Homogeneo
-#==============================================================================
-rec_homo[0,:,:] = rec0.data[:,:]
 #==============================================================================
 
 #==============================================================================
@@ -175,18 +165,23 @@ for k in range(0,number_xfontpos):
 #==============================================================================
     print("Homogen Source:", k)
 #==============================================================================
-# Atualização da Fonte de Ricker Modelo Homogeneo
+
 #==============================================================================
-    #src0 = RickerSource(name='src0',grid=model0.grid,f0=f0,npoint=nfonte,time_range=time_range0)
-    nxfontpos                   = nxfontposv[k]
-    src0.coordinates.data[:, 0] = nxfontpos
-    #src0.coordinates.data[:, 1] = nzfontpos
+# Construção Fonte de Ricker Modelo Homogeneo
 #==============================================================================
-    
+    src0.coordinates.data[:, 0] = nxfontposv[k]
 #==============================================================================
-# Atualização e Execução dos Operadores Modelo Homogeneo
+
 #==============================================================================
-    #op0(time=time_range0.num-1,dt=model0.critical_dt,src0=src0)
+# Construção dos Campos Modelo Homogêneo
+#==============================================================================
+    u0.data[:]   = 0.0
+    rec0.data[:] = 0.0    
+#==============================================================================
+
+#==============================================================================
+# Execução dos Operadores Modelo Homogeneo
+#==============================================================================
     op0(time=time_range0.num-1,dt=dt0,src0=src0)
 #==============================================================================
 
@@ -194,12 +189,14 @@ for k in range(0,number_xfontpos):
 # Salvando Informações dos Receiveris do Modelo Homogeneo
 #==============================================================================
     rec_homo[k,:,:] = rec0.data[:,:]
-    np.save("data_save/rec_data_homog_source_%d"%(k),rec_homo[k, :,nbl:-nbl])
+    np.save("data_save/rec_data_homog_source_%d"%(k),rec_homo[k,:,:])
 
     if(verbosity>0):
-    #rplot.graph2d(u.data[0,:,:],teste,i,k,tmodel)
-        rplot.graph2drec(rec_homo[k, :, :],teste,0,k,-1)
+        
+        rplot.graph2d(u0.data[0,:,:],teste,0,k,-1)
+        rplot.graph2drec(rec0.data[:,:],teste,0,k,-1)
 #==============================================================================
+
 
 #==============================================================================
 # Variando os Tipos de Camadas Aleatórias
@@ -222,10 +219,12 @@ for tmodel in range(0,ncamadas):
 #==============================================================================
 # Construção do Modelo de Velocidade
 #==============================================================================     
-        if(tmodel==0): model = gr.generateRandomModel_linhas(teste,vmodelmin,vmodelmax,max_layers)
-        if(tmodel==1): model = gr.generateRandomModel_linha_inclinada(teste,vmodelmin,vmodelmax,max_layers)
-        if(tmodel==2): model = gr.generateRandomModel_gaussiana(teste,vmodelmin,vmodelmax,max_layers)
-        if(tmodel==3): model = gr.generateRandomModel(teste,vmodelmin,vmodelmax,max_layers)
+        
+        if(tmodel==0): layer_profile = [True, False, False] #model = gr.generateRandomModel_linhas(teste,vmodelmin,vmodelmax,max_layers)
+        if(tmodel==1): layer_profile = [True, True, False] #model = gr.generateRandomModel_linha_inclinada(teste,vmodelmin,vmodelmax,max_layers)
+        if(tmodel==2): layer_profile = [False, False, True] #model = gr.generateRandomModel_gaussiana(teste,vmodelmin,vmodelmax,max_layers)
+        if(tmodel==3): layer_profile = [True, True, True] #model = gr.generateRandomModel(teste,vmodelmin,vmodelmax,max_layers)
+        model = gr.generateRandomModel(teste,vmodelmin,vmodelmax,max_layers, layer_profile)
 
         if(verbosity>0):
             
@@ -239,12 +238,10 @@ for tmodel in range(0,ncamadas):
         np.save("data_save/vel_model_data_%d_type_%d"%(i,tmodel),field)
 #==============================================================================
 
-
-
 #==============================================================================
 # Construção Receivers Modelo Teste
 #==============================================================================
-        if i == 0:
+        if(i==0):
             rec = Receiver(name='rec',grid=model.grid,npoint=nrec,time_range=time_range)
             rec.coordinates.data[:,0] = nxrecpos
             rec.coordinates.data[:,1] = nzrecpos 
@@ -253,6 +250,7 @@ for tmodel in range(0,ncamadas):
 #==============================================================================
 # Construção Fonte de Ricker Modelo Teste
 #==============================================================================
+        if(i==0):
             src = RickerSource(name='src', grid=model.grid,f0=f0,npoint=nfonte,time_range=time_range)
             src.coordinates.data[:, 0] = nxfontposv[0]
             src.coordinates.data[:, 1] = nzfontpos
@@ -261,19 +259,17 @@ for tmodel in range(0,ncamadas):
 #==============================================================================
 # Construção dos Campos Modelo Teste
 #==============================================================================
-            u        = TimeFunction(name="u",grid=model.grid, time_order=tou, space_order=sou)
-
+        if(i==0): u = TimeFunction(name="u",grid=model.grid, time_order=tou, space_order=sou)
         pde      = model.m * u.dt2 - u.laplace + model.damp * u.dt
         stencil  = Eq(u.forward, solve(pde, u.forward))
         src_term = src.inject(field=u.forward, expr=src * dt**2 / model.m)
-        rec_term = rec.interpolate(expr=u.forward)
+        rec_term = rec.interpolate(expr=u)
 #==============================================================================
 
 #==============================================================================
 # Construção e Execução dos Operadores Modelo Teste
 #==============================================================================
         op  = Operator([stencil] + src_term + rec_term, subs=model.spacing_map)        
-        op(time=time_range.num-1,dt=model.critical_dt)
 #==============================================================================
 
 #==============================================================================
@@ -293,22 +289,22 @@ for tmodel in range(0,ncamadas):
 #==============================================================================
 # For para o Número de Fontes
 #==============================================================================
-        for k in range(1,number_xfontpos):    
+        for k in range(0,number_xfontpos):    
 #==============================================================================
 
 #==============================================================================
 # Atualização Fonte de Ricker Modelo Teste
 #==============================================================================
-            #src = RickerSource(name='src', grid=model.grid,f0=f0,npoint=nfonte,time_range=time_range)
             nxfontpos                  = nxfontposv[k]
             src.coordinates.data[:, 0] = nxfontpos
-            #src.coordinates.data[:, 1] = nzfontpos
 #==============================================================================
 
 #==============================================================================
 # Atualização e Execução dos Operadores Modelo Teste
 #==============================================================================
-            op(time=time_range.num-1,dt=model.critical_dt,src=src)
+            u.data[:]   = 0.0
+            rec.data[:] = 0.0
+            op(time=time_range.num-1,dt=dt0,src=src)
 #==============================================================================
 
 #==============================================================================
@@ -321,6 +317,6 @@ for tmodel in range(0,ncamadas):
     
             if(verbosity>0):
     
-                #rplot.graph2d(u.data[0,:,:],teste,i,k,tmodel)
+                rplot.graph2d(u.data[0,:,:],teste,i,k,tmodel)
                 rplot.graph2drec(rec_clean,teste,i,k,tmodel)
 #==============================================================================
